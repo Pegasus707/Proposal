@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A Question for You</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,600&family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep: #050511;
+            --gold: #d4af37;
+            --gold-light: #f3e5ab;
+            --text: #f0f0f0;
+            --glass: rgba(20, 20, 30, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glow: rgba(212, 175, 55, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* --- Ambient Effects --- */
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 40%, #000 100%);
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .grain {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+        }
+        #starfield { position: fixed; top: 0; left: 0; z-index: 0; }
+
+        /* --- Main Card --- */
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 600px;
+            background: var(--glass);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--glass-border);
+            padding: 3rem 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 100px var(--glow); /* Ambient Glow */
+            text-align: center;
+            opacity: 0;
+            transform: translateY(30px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-height: 450px;
+            overflow: hidden; /* Keeps the shine inside */
+        }
+
+        /* --- Typography --- */
+        h1 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            line-height: 1.1;
+            color: var(--gold-light);
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.5px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .highlight { color: var(--gold); font-style: italic; }
+
+        p {
+            font-size: 0.9rem;
+            font-weight: 500;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: inline-block;
+            padding-bottom: 10px;
+        }
+
+        /* --- Buttons --- */
+        .btn-container { display: flex; justify-content: center; gap: 1.5rem; width: 100%; margin-top: 1rem; }
+
+        button {
+            padding: 16px 40px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            border: 1px solid var(--gold);
+            background: rgba(212, 175, 55, 0.05);
+            color: var(--gold);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+            z-index: 1;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 0%; height: 100%;
+            background: var(--gold);
+            z-index: -1;
+            transition: width 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        button:hover { color: var(--bg-deep); box-shadow: 0 0 30px rgba(212, 175, 55, 0.3); }
+        button:hover::before { width: 100%; }
+
+        .btn-primary { background: var(--gold); color: var(--bg-deep); box-shadow: 0 0 20px rgba(212, 175, 55, 0.2); }
+        
+        /* Shimmer effect for primary button */
+        @keyframes shimmer {
+            0% { transform: translateX(-150%); }
+            100% { transform: translateX(150%); }
+        }
+        .btn-primary::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transform: skewX(-20deg);
+            animation: shimmer 3s infinite;
+        }
+
+        /* --- Slide Logic --- */
+        .slide { display: none; width: 100%; }
+        .slide.active { display: block; }
+
+        /* --- THE LUXURY GALLERY (Bento Layout) --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr; /* Asymmetric grid for style */
+            grid-template-rows: 200px 200px;
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0; /* Hidden for GSAP */
+            cursor: pointer;
+        }
+
+        /* Item 1: The Wide Shot (Top Left to Right) */
+        .gallery-item:nth-child(1) {
+            grid-column: 1 / -1; /* Spans full width */
+            grid-row: 1;
+        }
+
+        /* Item 2: Bottom Left */
+        .gallery-item:nth-child(2) {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        /* Item 3: Bottom Right */
+        .gallery-item:nth-child(3) {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) brightness(0.8);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* Hover Interaction */
+        .gallery-item:hover { border-color: var(--gold); }
+        .gallery-item:hover img {
+            filter: grayscale(0%) brightness(1.1);
+            transform: scale(1.05);
+        }
+
+        /* Shine effect on images */
+        .gallery-item::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-25deg);
+            transition: 0.5s;
+        }
+        .gallery-item:hover::after { left: 150%; transition: 0.7s; }
+
+
+        /* --- Mobile Adjustments --- */
+        @media (max-width: 768px) {
+            .card { width: 95%; padding: 2rem 1.5rem; min-height: 400px; }
+            h1 { font-size: 2.5rem; }
+            .gallery-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            .gallery-item:nth-child(1) { height: 200px; }
+            .gallery-item:nth-child(2), .gallery-item:nth-child(3) { height: 250px; grid-column: auto; }
+            .btn-container { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="starfield"></canvas>
+    <div class="grain"></div>
+    <div class="vignette"></div>
+
+    <div class="card">
+        <div id="slide1" class="slide active">
+            <p>The Question</p>
+            <h1>Do you <span class="highlight">like</span> me?</h1>
+            <div class="btn-container">
+                <button class="btn-primary" onclick="transitionToProposal()">Yes</button>
+                <button id="noBtn" onclick="magicConvert()">No</button>
+            </div>
+        </div>
+
+        <div id="slide2" class="slide">
+            <p>The Real Question</p>
+            <h1>Will you go out with your <br><span class="highlight">handsome man?</span></h1>
+            <div class="btn-container">
+                <button class="btn-primary" onclick="handleFinale()">Absolutely Yes</button>
+            </div>
+        </div>
+
+        <div id="slide3" class="slide">
+            <h1>It's a Date. <span class="highlight">🥂</span></h1>
+            <p>Prom Night Awaits.</p>
+            
+            <div class="gallery-grid">
+                <div class="gallery-item"><img src="images/image_0.png" alt="Us Wide"></div>
+                <div class="gallery-item"><img src="images/image_1.png" alt="Us Portrait 1"></div>
+                <div class="gallery-item"><img src="images/image_2.png" alt="Us Portrait 2"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Cinematic Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            gsap.to(".card", { duration: 1.5, y: 0, opacity: 1, ease: "power4.out", delay: 0.5 });
+            gsap.from("#slide1 h1", { duration: 1.5, y: 50, opacity: 0, ease: "power3.out", delay: 0.8 });
+            gsap.from(".btn-container", { duration: 1, opacity: 0, delay: 1.2 });
+        });
+
+        // --- 2. Magic "No" Button ---
+        function magicConvert() {
+            const btn = document.getElementById('noBtn');
+            const tl = gsap.timeline();
+            
+            // Glitch effect
+            tl.to(btn, { x: 10, duration: 0.05, repeat: 5, yoyo: true })
+              .to(btn, { backgroundColor: "#ffffff", color: "#000", duration: 0.1 })
+              .to(btn, { 
+                  backgroundColor: "#d4af37", color: "#050511", borderColor: "#d4af37",
+                  duration: 0.4, scale: 1.1, boxShadow: "0 0 40px rgba(212, 175, 55, 0.6)"
+              })
+              .add(() => { btn.innerText = "YES (OBVIOUSLY)"; })
+              .add(() => { triggerConfetti(); setTimeout(transitionToProposal, 1200); });
+        }
+
+        // --- 3. Transitions ---
+        function transitionToProposal() {
+            gsap.to("#slide1", {
+                duration: 0.6, opacity: 0, y: -30, ease: "power2.in",
+                onComplete: () => {
+                    document.getElementById("slide1").classList.remove("active");
+                    const s2 = document.getElementById("slide2");
+                    s2.classList.add("active");
+                    gsap.fromTo("#slide2", 
+                        { opacity: 0, y: 40 }, 
+                        { opacity: 1, y: 0, duration: 1.2, ease: "power3.out" }
+                    );
+                }
+            });
+        }
+
+        function handleFinale() {
+            triggerConfetti();
+            gsap.to("#slide2", {
+                duration: 0.6, opacity: 0, y: -30, ease: "power2.in",
+                onComplete: () => {
+                    document.getElementById("slide2").classList.remove("active");
+                    const s3 = document.getElementById("slide3");
+                    s3.classList.add("active");
+
+                    // Title Animation
+                    gsap.fromTo("#slide3 h1, #slide3 p", 
+                        { opacity: 0, y: 20 }, 
+                        { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: "power2.out" }
+                    );
+
+                    // Refined Gallery Entrance (Snap Effect)
+                    gsap.fromTo(".gallery-item", 
+                        { opacity: 0, y: 50, rotationX: 10 }, 
+                        { 
+                            opacity: 1, y: 0, rotationX: 0, 
+                            duration: 1.5, stagger: 0.2, 
+                            ease: "elastic.out(1, 0.75)" // Bouncy physics
+                        }
+                    );
+                }
+            });
+        }
+
+        // --- 4. Confetti (More Gold) ---
+        function triggerConfetti() {
+            const end = Date.now() + 3000;
+            const colors = ['#d4af37', '#f3e5ab', '#ffffff'];
+
+            (function frame() {
+                confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0 }, colors: colors });
+                confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1 }, colors: colors });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        // --- 5. Starfield Background (Slow Float) ---
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let width, height, stars = [];
+
+        function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+        window.addEventListener('resize', resize);
+        resize();
+
+        class Star {
+            constructor() {
+                this.x = Math.random() * width; this.y = Math.random() * height;
+                this.size = Math.random() * 2; 
+                this.speedX = (Math.random() - 0.5) * 0.3; // Slower, calmer
+                this.speedY = (Math.random() - 0.5) * 0.3;
+                this.opacity = Math.random();
+            }
+            update() {
+                this.x += this.speedX; this.y += this.speedY; 
+                this.opacity += Math.sin(Date.now() * 0.001) * 0.005; // Twinkle effect
+                if (this.x < 0) this.x = width; if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height; if (this.y > height) this.y = 0;
+            }
+            draw() { 
+                ctx.fillStyle = `rgba(255, 255, 255, ${Math.abs(this.opacity)})`; 
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); 
+            }
+        }
+        for (let i = 0; i < 120; i++) stars.push(new Star());
+        function animateStars() { ctx.clearRect(0, 0, width, height); stars.forEach(star => { star.update(); star.draw(); }); requestAnimationFrame(animateStars); }
+        animateStars();
+
+    </script>
+</body>
+</html>
